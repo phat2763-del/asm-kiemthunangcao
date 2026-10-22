@@ -26,8 +26,14 @@ jobs:
       with:
         chrome-version: latest
 
+    - name: Start Spring Boot Application in background
+      run: |
+        mvn spring-boot:run &
+        # Đợi 15 giây để ứng dụng kịp khởi động hoàn toàn trên cổng 8080
+        sleep 15
+
     - name: Run Maven Test (Selenium & JUnit)
-      run: mvn clean test
+      run: mvn test
 
     - name: Upload Test Reports
       uses: actions/upload-artifact@v4
