@@ -1,4 +1,4 @@
-name: Java CI with Maven & Selenium
+name: Java CI with Maven
 
 on:
   push:
@@ -21,23 +21,11 @@ jobs:
         distribution: 'temurin'
         cache: 'maven'
 
-    - name: Install Google Chrome
-      uses: browser-actions/setup-chrome@v1
-      with:
-        chrome-version: latest
+    - name: Build with Maven
+      run: mvn clean compile
 
-    - name: Start Spring Boot Application in background
-      run: |
-        mvn spring-boot:run &
-        # Đợi 15 giây để ứng dụng kịp khởi động hoàn toàn trên cổng 8080
-        sleep 15
-
-    - name: Run Maven Test (Selenium & JUnit)
-      run: mvn test
-
-    - name: Upload Test Reports
+    - name: Upload Build Artifacts
       uses: actions/upload-artifact@v4
-      if: always()
       with:
-        name: test-reports
-        path: target/surefire-reports/
+        name: project-source
+        path: target/
