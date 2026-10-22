@@ -1,0 +1,57 @@
+<div class="card shadow-sm">
+    <div class="card-header bg-info text-white fw-bold py-3">
+        <i class="bi bi-person-badge me-2"></i> CẬP NHẬT TÀI KHOẢN
+    </div>
+    <div class="card-body">
+        <form id="profileForm" onsubmit="updateProfile(event)">
+            <div class="mb-3">
+                <label class="form-label fw-bold">Tên đăng nhập</label>
+                <input id="username" th:value="${user.username}" class="form-control bg-light" readonly>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Họ và tên</label>
+                <input id="fullname" th:value="${user.fullname}" class="form-control" placeholder="Nhập họ tên mới" required>
+            </div>
+            
+            <div class="mb-3">
+                <label class="form-label fw-bold">Email</label>
+                <input id="email" th:value="${user.email}" class="form-control" type="email" placeholder="example@gmail.com" required>
+            </div>
+
+            <input type="hidden" id="photo" th:value="${user.photo}">
+            
+            <hr>
+            <div class="d-grid">
+                <button type="submit" class="btn btn-primary fw-bold">
+                    <i class="bi bi-save me-2"></i> LƯU THAY ĐỔI
+                </button>
+            </div>
+        </form>
+    </div>
+</div>
+
+<script>
+    async function updateProfile(event) {
+        event.preventDefault(); // Ngăn trang web load lại
+        
+        const data = {
+            fullname: document.getElementById('fullname').value,
+            email: document.getElementById('email').value,
+            photo: document.getElementById('photo').value
+        };
+
+        try {
+            const response = await axios.put('/api/account/profile', data);
+            if (response.data.success) {
+                Swal.fire('Thành công', response.data.message, 'success');
+                // Cập nhật tên hiển thị trên Navbar nếu cần
+                const navbarName = document.querySelector('.navbar-nav .dropdown-toggle');
+                if(navbarName) navbarName.innerHTML = `<i class="bi bi-person-circle me-1"></i> ${data.fullname}`;
+            }
+        } catch (error) {
+            const msg = error.response?.data?.message || "Lỗi cập nhật!";
+            Swal.fire('Lỗi', msg, 'error');
+        }
+    }
+</script>

@@ -1,0 +1,97 @@
+<div class="container mt-4 mb-5">
+    <div class="row" id="product-detail-content">
+        <div class="col-md-5 text-center">
+            <div class="card border-0 shadow-sm p-3">
+                <img id="p-img" class="img-fluid rounded" src="/images/default.png" 
+                     style="max-height: 400px; min-height: 300px; object-fit: contain; width: 100%;">
+            </div>
+        </div>
+
+        <div class="col-md-7">
+            <h2 id="p-name" class="fw-bold text-primary mb-3">Đang tải...</h2>
+            <h3 id="p-price" class="text-danger fw-bold mb-4">0 ₫</h3>
+            
+            <div class="p-3 bg-light rounded border-start border-4 border-primary mb-4">
+                <p class="mb-1 fw-bold small text-uppercase">Mô tả sản phẩm:</p>
+                <p id="p-desc" class="text-muted small mb-0" style="white-space: pre-line;"></p>
+            </div>
+
+            <div class="mb-4">
+                <h6 class="fw-bold mb-3"><i class="bi bi-rulers me-2"></i>Chọn Size:</h6>
+                <div id="size-list" class="d-flex gap-2 flex-wrap">
+                    </div>
+                <div id="size-error" class="text-danger small mt-2 d-none">Vui lòng chọn size giày!</div>
+            </div>
+
+            <div class="d-grid gap-2 d-md-flex mt-5">
+                <button onclick="addToCartDetail()" class="btn btn-primary btn-lg px-5 shadow fw-bold">
+                    <i class="bi bi-cart-plus me-2"></i>THÊM VÀO GIỎ HÀNG
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+    (async function init() {
+        // 1. Lấy ID từ window (do index.html gán) hoặc từ URL
+        let pid = window.currentProductId;
+        if (!pid) {
+            const pathParts = window.location.pathname.split('/');
+            pid = pathParts[pathParts.length - 1];
+        }
+
+        if (!pid || isNaN(pid)) return;
+
+        try {
+            // 2. Gọi API (Dùng link tương đối để khớp host)
+            const response = await axios.get('/api/products/' + pid);
+            const p = response.data;
+
+            // 3. Đổ dữ liệu vào HTML
+            document.getElementById('p-name').innerText = p.name;
+            document.getElementById('p-price').innerText = p.price.toLocaleString('vi-VN') + " ₫";
+            document.getElementById('p-img').src = '/images/' + p.image;
+            document.getElementById('p-img').onerror = function() { this.src = '/images/default.png'; };
+            document.getElementById('p-desc').innerText = p.description || "Sản phẩm chính hãng CAMEDO.";
+
+            // 4. Đổ danh sách Size (Dùng field 'sizes' như trong Entity Product.java)
+            let sizeHtml = '';
+            if (p.sizes && p.sizes.length > 0) {
+                p.sizes.forEach(s => {
+                    sizeHtml += `
+                        <input type="radio" class="btn-check" name="size" id="s${s.id}" value="${s.id}">
+                        <label class="btn btn-outline-primary px-3 fw-bold" for="s${s.id}">${s.sizeValue}</label>`;
+                });
+            } else {
+                sizeHtml = '<span class="text-muted small">Hết hàng</span>';
+            }
+            document.getElementById('size-list').innerHTML = sizeHtml;
+
+        } catch (error) {
+            console.error("Lỗi nạp dữ liệu:", error);
+            document.getElementById('p-name').innerText = "Lỗi kết nối Server!";
+        }
+    })();
+
+    async function addToCartDetail() {
+        const sizeInput = document.querySelector('input[name="size"]:checked');
+        if (!sizeInput) {
+            document.getElementById('size-error').classList.remove('d-none');
+            return;
+        }
+        document.getElementById('size-error').classList.add('d-none');
+
+        try {
+            const pid = window.currentProductId || window.location.pathname.split('/').pop();
+            const res = await axios.post(`/api/cart/add/${pid}?size=${sizeInput.value}`);
+            Swal.fire({ icon: 'success', title: 'Thành công', text: res.data.message, timer: 1500 });
+            
+            // Cập nhật số lượng badge nếu có
+            const badge = document.getElementById("cart-badge");
+            if(badge) badge.innerText = res.data.count;
+        } catch (err) {
+            Swal.fire('Thông báo', 'Vui lòng đăng nhập!', 'warning');
+        }
+    }
+</script>

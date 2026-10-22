@@ -1,0 +1,142 @@
+<!DOCTYPE html>
+<html xmlns:th="http://www.thymeleaf.org">
+<head>
+    <meta charset="UTF-8">
+    <title>Xác nhận đơn hàng</title>
+</head>
+<body>
+    <div class="container mt-4 mb-5">
+        <h2 class="text-primary mb-4 text-center fw-bold">XÁC NHẬN ĐƠN HÀNG</h2>
+
+        <div class="row">
+            <div class="col-md-5">
+                <div class="card shadow-sm border-0 mb-4">
+                    <div class="card-header bg-dark text-white py-3">
+                        <h5 class="mb-0"><i class="bi bi-person-badge-fill me-2"></i>Thông tin người nhận</h5>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Người mua:</label> 
+                            <input type="text" th:value="${session.user.fullname}" class="form-control bg-light fw-bold" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Ngày đặt:</label> 
+                            <input type="text" id="chk-order-date" class="form-control bg-white" readonly>
+                        </div>
+                        <div class="mb-3">
+                            <label class="form-label fw-bold">Địa chỉ giao hàng:</label>
+                            <textarea id="chk-address" class="form-control border-primary" rows="3" placeholder="Nhập địa chỉ nhận hàng..."></textarea>
+                            <div id="chk-address-error" class="text-danger small mt-1 d-none">Vui lòng nhập địa chỉ!</div>
+                        </div>
+                        <div class="mt-4 border p-3 rounded bg-light">
+                            <label class="form-label fw-bold d-block mb-2">Phương thức thanh toán:</label>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="payMethod" id="chk-cod" value="COD" checked> 
+                                <label class="form-check-label" for="chk-cod">Tiền mặt (COD)</label>
+                            </div>
+                            <div class="form-check form-check-inline">
+                                <input class="form-check-input" type="radio" name="payMethod" id="chk-vnpay" value="VNPAY"> 
+                                <label class="form-check-label" for="chk-vnpay">Online (VNPay)</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-md-7">
+                <div class="card shadow-sm border-0">
+                    <div class="card-header bg-info text-white py-3">
+                        <h5 class="mb-0"><i class="bi bi-cart-check-fill me-2"></i>Sản phẩm đã chọn</h5>
+                    </div>
+                    <div class="card-body p-0">
+                        <div class="table-responsive">
+                            <table class="table table-hover mb-0">
+                                <thead class="table-light">
+                                    <tr>
+                                        <th class="ps-3">Sản phẩm</th>
+                                        <th class="text-center">Số lượng</th>
+                                        <th class="text-end">Giá</th>
+                                        <th class="text-end pe-3">Tổng</th>
+                                    </tr>
+                                </thead>
+                                <tbody id="chk-cart-body">
+                                    </tbody>
+                                <tfoot>
+                                    <tr class="table-warning">
+                                        <td colspan="3" class="text-end fw-bold py-3">TỔNG THANH TOÁN:</td>
+                                        <td id="chk-total-amount" class="text-end fw-bold text-danger h5 py-3 pe-3">0 ₫</td>
+                                    </tr>
+                                </tfoot>
+                            </table>
+                        </div>
+                    </div>
+                    <div class="card-footer bg-white border-top-0 d-flex justify-content-between py-3">
+                        <button onclick="showPage('/cart/view')" class="btn btn-outline-secondary">Sửa giỏ hàng</button>
+                        <button id="chk-btn-confirm" onclick="confirmCheckout()" class="btn btn-success px-5 fw-bold shadow">
+                            XÁC NHẬN ĐẶT HÀNG
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 1. Tải giỏ hàng khi mở trang
+        (async function initCheckout() {
+            document.getElementById('chk-order-date').value = new Date().toLocaleDateString('vi-VN');
+            try {
+                const res = await axios.get('/api/cart');
+                const { items, amount } = res.data;
+                
+                let html = '';
+                items.forEach(item => {
+                    html += `
+                    <tr class="align-middle">
+                        <td class="ps-3">
+                            <div class="fw-bold text-dark">${item.name}</div>
+                            <small class="badge bg-secondary">Size: ${item.size}</small>
+                        </td>
+                        <td class="text-center">${item.qty}</td>
+                        <td class="text-end">${item.price.toLocaleString('vi-VN')} ₫</td>
+                        <td class="text-end fw-bold text-danger pe-3">${(item.price * item.qty).toLocaleString('vi-VN')} ₫</td>
+                    </tr>`;
+                });
+                document.getElementById('chk-cart-body').innerHTML = html;
+                document.getElementById('chk-total-amount').innerText = amount.toLocaleString('vi-VN') + ' ₫';
+            } catch (err) { console.error(err); }
+        })();
+
+        // 2. Gửi đơn hàng lên Server
+        async function confirmCheckout() {
+            const address = document.getElementById('chk-address').value.trim();
+            const method = document.querySelector('input[name="payMethod"]:checked').value;
+            
+            if(!address) {
+                document.getElementById('chk-address-error').classList.remove('d-none');
+                return;
+            }
+
+            const btn = document.getElementById('chk-btn-confirm');
+            btn.disabled = true;
+            btn.innerHTML = 'Đang xử lý...';
+
+            try {
+                const res = await axios.post('/api/orders/checkout', { address, paymentMethod: method });
+                if(res.data.success) {
+                    if(method === 'VNPAY' && res.data.vnpayUrl) {
+                        location.href = res.data.vnpayUrl;
+                    } else {
+                        await Swal.fire('Thành công', 'Đơn hàng đã được ghi nhận!', 'success');
+                        showPage('/order/list');
+                    }
+                }
+            } catch (err) {
+                Swal.fire('Lỗi', err.response?.data?.message || "Lỗi hệ thống", 'error');
+                btn.disabled = false;
+                btn.innerHTML = 'XÁC NHẬN ĐẶT HÀNG';
+            }
+        }
+    </script>
+</body>
+</html>

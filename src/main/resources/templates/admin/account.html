@@ -1,0 +1,55 @@
+<div class="container-fluid mt-4">
+    <div class="card shadow-sm border-0">
+        <div class="card-header bg-dark text-white fw-bold d-flex justify-content-between align-items-center py-3">
+            <span><i class="bi bi-people-fill me-2"></i>QUẢN LÝ TÀI KHOẢN</span>
+            <span class="badge bg-info text-dark px-3" id="accountCount">Đang tải...</span>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover align-middle mb-0 text-center">
+                    <thead class="table-light small text-uppercase">
+                        <tr>
+                            <th>Username</th><th>Họ tên</th><th>Email</th><th>Vai trò</th><th>Cấp quyền</th><th>Thao tác</th>
+                        </tr>
+                    </thead>
+                    <tbody id="accountTableBody"><tr><td colspan="6" class="py-5">Đang tải dữ liệu...</td></tr></tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+<script>
+    var API_ACCOUNTS = '/api/admin/accounts';
+    async function loadAccounts() {
+        const tbody = document.getElementById('accountTableBody');
+        if(!tbody) return;
+        try {
+            const res = await axios.get(API_ACCOUNTS);
+            document.getElementById('accountCount').innerText = res.data.length + ' TV';
+            let html = '';
+            res.data.forEach(acc => {
+                const isAdmin = acc.admin === true;
+                html += `<tr>
+                    <td class="fw-bold text-primary">${acc.username}</td>
+                    <td class="text-start fw-bold">${acc.fullname}</td>
+                    <td class="text-start small">${acc.email}</td>
+                    <td><span class="badge ${isAdmin ? 'bg-danger' : 'bg-secondary'}">${isAdmin ? 'Admin' : 'User'}</span></td>
+                    <td>
+                        <button class="btn btn-sm btn-link text-decoration-none fw-bold ${isAdmin ? 'text-secondary' : 'text-danger'}" onclick="updateRole('${acc.username}', ${!isAdmin})">
+                            <i class="bi ${isAdmin ? 'bi-person-dash' : 'bi-person-check'}"></i> ${isAdmin ? 'Hủy' : 'Cấp'} Admin
+                        </button>
+                    </td>
+                    <td><button class="btn btn-sm btn-outline-danger border-0" onclick="deleteAccount('${acc.username}')"><i class="bi bi-trash3"></i></button></td>
+                </tr>`;
+            });
+            tbody.innerHTML = html;
+        } catch (e) { tbody.innerHTML = '<tr><td colspan="6" class="text-danger">Lỗi nạp dữ liệu</td></tr>'; }
+    }
+    async function updateRole(u, r) {
+        if(confirm('Bạn có chắc?')) { await axios.put(`${API_ACCOUNTS}/${u}/role`, {admin: r}); loadAccounts(); }
+    }
+    async function deleteAccount(u) {
+        if(confirm('Xóa vĩnh viễn?')) { await axios.delete(`${API_ACCOUNTS}/${u}`); loadAccounts(); }
+    }
+    loadAccounts();
+</script>
