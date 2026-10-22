@@ -5,6 +5,7 @@ import org.openqa.selenium.By;
 import org.openqa.selenium.WebDriver;
 import org.openqa.selenium.WebElement;
 import org.openqa.selenium.chrome.ChromeDriver;
+import org.openqa.selenium.chrome.ChromeOptions;
 import org.openqa.selenium.support.ui.ExpectedConditions;
 import org.openqa.selenium.support.ui.Select;
 import org.openqa.selenium.support.ui.WebDriverWait;
@@ -22,8 +23,14 @@ public class ShoeShopSeleniumTest {
 
     @BeforeAll
     public static void setUpClass() {
-        // Khởi tạo ChromeDriver tự động quản lý bởi Selenium Manager
-        driver = new ChromeDriver();
+        // Cấu hình ChromeOptions để hỗ trợ chạy trên cả máy cá nhân và GitHub Actions (Headless)
+        ChromeOptions options = new ChromeOptions();
+        options.addArguments("--headless"); // Chạy ngầm không bật giao diện trình duyệt (rất quan trọng cho GitHub Actions)
+        options.addArguments("--no-sandbox");
+        options.addArguments("--disable-dev-shm-usage");
+        options.addArguments("--window-size=1920,1080");
+
+        driver = new ChromeDriver(options);
         driver.manage().window().maximize();
         wait = new WebDriverWait(driver, Duration.ofSeconds(15));
     }
@@ -47,7 +54,7 @@ public class ShoeShopSeleniumTest {
         WebElement loginBtn = driver.findElement(By.cssSelector("button[type='submit']"));
 
         usernameTxt.clear();
-        usernameTxt.sendKeys("user1"); // Đảm bảo tài khoản này tồn tại trong DB
+        usernameTxt.sendKeys("user1"); // Tài khoản mẫu trong Database
         passwordTxt.clear();
         passwordTxt.sendKeys("123");   // Mật khẩu tương ứng
         
@@ -84,7 +91,7 @@ public class ShoeShopSeleniumTest {
             // Bỏ qua nếu không dùng thẻ select cho size
         }
 
-        // Thực hiện thêm vào giỏ hàng (ưu tiên gọi trực tiếp API/URL giỏ hàng nếu nút bấm phức tạp để test case luôn thông suốt)
+        // Thực hiện thêm vào giỏ hàng
         try {
             WebElement addToCartBtn = wait.until(ExpectedConditions.elementToBeClickable(
                 By.cssSelector("button.btn-add-cart, form[action*='/cart/add'] button[type='submit']")
